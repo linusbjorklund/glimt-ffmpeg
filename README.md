@@ -26,10 +26,12 @@ The AAR holds:
   (`FfmpegAudioRenderer`, `FfmpegLibrary` and others), unchanged.
 - `jni/<abi>/libffmpegJNI.so` for `armeabi-v7a`, `arm64-v8a`, `x86` and
   `x86_64`: Media3's JNI wrapper, linked with FFmpeg's `libavcodec`, `libavutil`
-  and `libswresample`. The 64-bit libraries are aligned for 16 KB memory pages.
+  and `libswresample`. The libraries are aligned for 16 KB memory pages, which
+  64-bit devices can use from Android 15 on.
 
-FFmpeg is built with four audio decoders and nothing else (no other decoders,
-no encoders, no demuxers, no filters, no network code):
+FFmpeg is built with four audio decoders, plus the AC-3 parser that FFmpeg
+selects with them. There are no other decoders, and no encoders, demuxers,
+muxers, filters or network code:
 
 | FFmpeg decoder | Formats |
 | --- | --- |
@@ -109,7 +111,7 @@ Plus, per ABI (`<ndk>` is the NDK's `toolchains/llvm/prebuilt/linux-x86_64/bin`)
 
 | ABI | Flags |
 | --- | --- |
-| `armeabi-v7a` | `--libdir=android-libs/armeabi-v7a --arch=arm --cpu=armv7-a --cross-prefix=<ndk>/armv7a-linux-androideabi23- --extra-cflags='-march=armv7-a -mfloat-abi=softfp' --extra-ldflags=-Wl,--fix-cortex-a8` |
+| `armeabi-v7a` | `--libdir=android-libs/armeabi-v7a --arch=arm --cpu=armv7-a --cross-prefix=<ndk>/armv7a-linux-androideabi23- --extra-cflags='-march=armv7-a -mfloat-abi=softfp' --extra-ldflags='-Wl,--fix-cortex-a8'` |
 | `arm64-v8a` | `--libdir=android-libs/arm64-v8a --arch=aarch64 --cpu=armv8-a --cross-prefix=<ndk>/aarch64-linux-android23-` |
 | `x86` | `--libdir=android-libs/x86 --arch=x86 --cpu=i686 --cross-prefix=<ndk>/i686-linux-android23- --disable-asm` |
 | `x86_64` | `--libdir=android-libs/x86_64 --arch=x86_64 --cpu=x86-64 --cross-prefix=<ndk>/x86_64-linux-android23- --disable-asm` |
@@ -118,6 +120,10 @@ Plus, per ABI (`<ndk>` is the NDK's `toolchains/llvm/prebuilt/linux-x86_64/bin`)
 FFmpeg stays under its default licence, LGPL version 2.1 or later. The build
 stops if FFmpeg's `configure` reports any other licence, or any codec besides
 the four above.
+
+The linker drops FFmpeg's own configuration string from the finished library,
+so it cannot be read back from the `.so` files. `BUILD_INFO.txt` holds the flags
+as FFmpeg's `configure` recorded them for each ABI.
 
 ## Using the library
 
@@ -173,7 +179,8 @@ export ANDROID_HOME=/path/to/android/sdk
 ```
 
 The script installs the pinned NDK and CMake through the SDK manager if they are
-missing, and leaves the AAR in `out/`. It takes 10 to 20 minutes.
+missing, and leaves the AAR in `out/`. In GitHub Actions it takes about five
+minutes.
 
 To build from other revisions, or with a modified FFmpeg, change
 [`versions.env`](versions.env) (and the repository address in `build.sh` if the
