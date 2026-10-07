@@ -1,0 +1,19 @@
+// Gradle init script for the Media3 build. build.sh passes it with --init-script,
+// so the Media3 checkout itself stays unmodified.
+//
+// It configures the FFmpeg decoder module only:
+//   - the NDK version, so the JNI wrapper is built with the same NDK as FFmpeg
+//   - the ABIs to build
+//   - extra linker flags for the JNI library (16 KB page size support)
+allprojects { project ->
+    if (project.name != "lib-decoder-ffmpeg") {
+        return
+    }
+    project.pluginManager.withPlugin("com.android.library") {
+        def android = project.extensions.getByName("android")
+        android.ndkVersion = project.property("ffmpegNdkVersion")
+        android.defaultConfig.ndk.abiFilters.addAll(project.property("ffmpegAbis").split(","))
+        android.defaultConfig.externalNativeBuild.cmake.arguments.add(
+            "-DCMAKE_SHARED_LINKER_FLAGS=" + project.property("ffmpegLinkerFlags"))
+    }
+}

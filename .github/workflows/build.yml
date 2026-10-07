@@ -1,0 +1,70 @@
+name: Build
+
+# Builds the AAR. A pushed tag v<version> also publishes it as a release.
+# A manual run on a branch only builds, and keeps the result as a workflow
+# artifact.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the AAR
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write # the last step creates the release
+    steps:
+      - name: Check out the build scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Build
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            ./build.sh "${GITHUB_REF_NAME#v}"
+          else
+            ./build.sh
+          fi
+
+      - name: Keep the build output
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: media3-ffmpeg-decoder
+          path: out/
+          if-no-files-found: error
+
+      - name: Publish the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "Media3 FFmpeg audio decoder extension, built from source by the scripts in this repository at this tag."
+            echo "FFmpeg is licensed under the GNU Lesser General Public License, version 2.1 or later. See the README for how to rebuild and replace the library."
+            echo
+            echo '```'
+            cat out/BUILD_INFO.txt
+            echo '```'
+          } > "${RUNNER_TEMP}/release-notes.md"
+          gh release create "${GITHUB_REF_NAME}" out/* \
+            --verify-tag \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file "${RUNNER_TEMP}/release-notes.md"
