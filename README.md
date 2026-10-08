@@ -1,8 +1,8 @@
-# glimt-ffmpeg
+# matinee-ffmpeg
 
 Build scripts for the FFmpeg audio decoder extension of
 [AndroidX Media3](https://github.com/androidx/media) (ExoPlayer), as used by
-Glimt, a media player for Android TV.
+Matinee, a media player for Android TV.
 
 Media3 does not publish this extension as a binary, because it has to be
 compiled together with FFmpeg. This repository builds it from source in GitHub
@@ -143,7 +143,7 @@ dependencyResolutionManagement {
             forRepository {
                 ivy {
                     name = "glimtFfmpeg"
-                    url = uri("https://github.com/linusbjorklund/glimt-ffmpeg/releases/download")
+                    url = uri("https://github.com/linusbjorklund/matinee-ffmpeg/releases/download")
                     patternLayout { artifact("v[revision]/[artifact]-[revision].[ext]") }
                     metadataSources { artifact() }
                 }
